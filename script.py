@@ -1320,15 +1320,15 @@ while run:
 
 pygame.quit()
 
-git checkout main
+# git checkout main
 
-git checkout -b feature-Dz-9-april
+# git checkout -b feature-Dz-9-april
 
-git add .
+# git add .
 
-git commit -m "Dz 9 April: Coins, Player, Enemy, Wall"
+# git commit -m "Dz 9 April: Coins, Player, Enemy, Wall"
 
-git push -u origin feature-Dz-9-april
+# git push -u origin feature-Dz-9-april
 
 
 
