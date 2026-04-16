@@ -850,11 +850,80 @@
 #     pygame.display.flip()
 #
 # pygame.quit()
-#
+
 # SHA256:FsbRkxlF1Kk9l8vH3uqZ5Crxwe1W4CtlkBQhUK2UCxQ artembodic138@gmail.com
-
-git config --global user.email "artembodic138@gmail.com"
-git config --global user.name "Artem"
-
-
+# git config --global user.email "artembodic138@gmail.com"
+# git config --global user.name "Artem"
 # ssh-keygen -t ed25519 -C "artembodic138@gmail.com"
+
+
+
+
+import pygame
+import sys
+
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
+
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+all_sprites = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect(center=(WIDTH//2, HEIGHT//2))
+        self.speed = 5
+
+    def update(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]: self.rect.y -= self.speed
+        if keys[pygame.K_s]: self.rect.y += self.speed
+        if keys[pygame.K_a]: self.rect.x -= self.speed
+        if keys[pygame.K_d]: self.rect.x += self.speed
+player = Player()
+
+class TargetObject(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((40, 40))
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect(center=(100, 100))
+    def move_to(self, pos):
+        self.rect.center = pos
+
+all_sprites.add(player)
+
+running = True
+while running:
+    screen.fill(WHITE)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    all_sprites.update()
+    all_sprites.draw(screen)
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+
+
+
+
+
+
+
+
+
+
+
+
