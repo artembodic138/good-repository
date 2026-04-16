@@ -1140,7 +1140,6 @@ import pygame
 import random
 import math
 
-# Настройки
 WIDTH, HEIGHT = 800, 600
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -1156,8 +1155,6 @@ def load_res(name, size):
         surf.fill((200, 50, 50))
         return surf
 
-
-# Ресурсы
 coin_imgs = [load_res(f"537313244285364442{i}.jpg", (30, 30)) for i in range(2, 7)]
 enemy_imgs = [load_res("pipo-enemy047a.png", (50, 50)), load_res("pipo-enemy047a2.png", (50, 50))]
 bullet_img = load_res("Снимок.PNG", (15, 25))
@@ -1184,7 +1181,6 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(player_img_orig, self.angle)
         new_rect = self.image.get_rect(center=self.rect.center)
 
-        # Коллизия игрока со стенами
         self.rect = new_rect
         if pygame.sprite.spritecollideany(self, walls_group):
             self.rect.topleft = old_pos
@@ -1199,13 +1195,12 @@ class Enemy(pygame.sprite.Sprite):
         self.frame = 0
 
     def update(self, *args):
-        # Движение по X с отскоком от стен
+
         self.rect.x += self.vx
         if self.rect.left < 0 or self.rect.right > WIDTH or pygame.sprite.spritecollideany(self, walls_group):
             self.vx *= -1
             self.rect.x += self.vx
 
-        # Движение по Y с отскоком
         self.rect.y += self.vy
         if self.rect.top < 0 or self.rect.bottom > HEIGHT or pygame.sprite.spritecollideany(self, walls_group):
             self.vy *= -1
@@ -1248,8 +1243,6 @@ class Coin(pygame.sprite.Sprite):
         self.frame = (self.frame + 0.2) % 5
         self.image = coin_imgs[int(self.frame)]
 
-
-# Инициализация
 all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
 coins_group = pygame.sprite.Group()
@@ -1260,7 +1253,6 @@ all_sprites.add(player)
 enemy = Enemy((100, 100));
 all_sprites.add(enemy)
 
-# Создание стен
 all_walls = [
     Wall(WIDTH // 2, HEIGHT // 2, False),  # Центральная
     Wall(200, 150), Wall(600, 150),  # Верхние вертикальные
@@ -1275,7 +1267,6 @@ for _ in range(5):
     coins_group.add(c);
     all_sprites.add(c)
 
-# Главный цикл
 run = True
 print("Собери 20 монет для победы!")
 while run:
@@ -1289,14 +1280,12 @@ while run:
 
     all_sprites.update(keys)
 
-    # Коллизии пуль со стенами (3 попадания)
     hits = pygame.sprite.groupcollide(bullets_group, walls_group, True, False)
     for wall_list in hits.values():
         for w in wall_list:
             w.hp -= 1
             if w.hp <= 0: w.kill()
 
-    # Сбор монет и СЧЕТ
     if pygame.sprite.spritecollide(player, coins_group, True):
         player.score += 1
         print(f"Счет: {player.score}")  # Вывод счета
@@ -1308,7 +1297,6 @@ while run:
             coins_group.add(c);
             all_sprites.add(c)
 
-    # Проигрыш
     if player.rect.colliderect(enemy.rect):
         print("ИГРА ОКОНЧЕНА! Враг тебя поймал.")
         run = False
