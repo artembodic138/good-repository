@@ -889,6 +889,8 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_s]: self.rect.y += self.speed
         if keys[pygame.K_a]: self.rect.x -= self.speed
         if keys[pygame.K_d]: self.rect.x += self.speed
+
+
 player = Player()
 
 class TargetObject(pygame.sprite.Sprite):
@@ -900,7 +902,39 @@ class TargetObject(pygame.sprite.Sprite):
     def move_to(self, pos):
         self.rect.center = pos
 
+class DraggableObject(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((60, 60))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect(center=(200, 400))
+        self.dragging = False
+        self.offset_x = 0
+        self.offset_y = 0
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and self.rect.collidepoint(event.pos):
+                self.dragging = True
+                self.offset_x = self.rect.x - event.pos[0]
+                self.offset_y = self.rect.y - event.pos[1]
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.dragging = False
+
+    def update(self):
+        if self.dragging:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.rect.x = mouse_x + self.offset_x
+            self.rect.y = mouse_y + self.offset_y
+
+# Создание объектов
+target_obj = TargetObject()
+drag_obj = DraggableObject()
+
 all_sprites.add(player)
+all_sprites.add(target_obj)
+all_sprites.add(drag_obj)
 
 running = True
 while running:
@@ -908,6 +942,11 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            target_obj.move_to(event.pos)
+
+        drag_obj.handle_event(event)
 
     all_sprites.update()
     all_sprites.draw(screen)
