@@ -856,9 +856,6 @@
 # git config --global user.name "Artem"
 # ssh-keygen -t ed25519 -C "artembodic138@gmail.com"
 
-
-
-
 import pygame
 import sys
 
@@ -928,7 +925,7 @@ class DraggableObject(pygame.sprite.Sprite):
             self.rect.x = mouse_x + self.offset_x
             self.rect.y = mouse_y + self.offset_y
 
-# Создание объектов
+
 target_obj = TargetObject()
 drag_obj = DraggableObject()
 
