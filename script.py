@@ -864,20 +864,44 @@ WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+# Цвета
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 all_sprites = pygame.sprite.Group()
-bullets = pygame.sprite.Group()
+bullets_group = pygame.sprite.Group()
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, start_pos, target_pos):
+        super().__init__()
+
+        pygame.draw.circle(self.image, YELLOW, (5, 5), 5)
+        self.image.set_colorkey((0, 0, 0))
+        self.rect = self.image.get_rect(center=start_pos)
+
+
+        direction = pygame.Vector2(target_pos) - start_pos
+        if direction.length() > 0:
+            self.velocity = direction.normalize() * 7
+        else:
+            self.velocity = pygame.Vector2(0, -7)
+
+    def update(self):
+        self.rect.centerx += self.velocity.x
+        self.rect.centery += self.velocity.y
+
+        if not screen.get_rect().colliderect(self.rect):
+            self.kill()
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((50, 50))
         self.image.fill(RED)
-        self.rect = self.image.get_rect(center=(WIDTH//2, HEIGHT//2))
+        self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
         self.speed = 5
 
     def update(self):
@@ -888,16 +912,16 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_d]: self.rect.x += self.speed
 
 
-player = Player()
-
 class TargetObject(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((40, 40))
         self.image.fill(BLUE)
         self.rect = self.image.get_rect(center=(100, 100))
+
     def move_to(self, pos):
         self.rect.center = pos
+
 
 class DraggableObject(pygame.sprite.Sprite):
     def __init__(self):
@@ -926,17 +950,17 @@ class DraggableObject(pygame.sprite.Sprite):
             self.rect.y = mouse_y + self.offset_y
 
 
+player = Player()
 target_obj = TargetObject()
 drag_obj = DraggableObject()
 
-all_sprites.add(player)
-all_sprites.add(target_obj)
-all_sprites.add(drag_obj)
+all_sprites.add(player, target_obj, drag_obj)
 
 running = True
 while running:
     screen.fill(WHITE)
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             running = False
 
@@ -945,21 +969,21 @@ while running:
 
         drag_obj.handle_event(event)
 
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 2:
+            new_bullet = Bullet(player.rect.center, event.pos)
+            bullets_group.add(new_bullet)
+            all_sprites.add(new_bullet)
+
     all_sprites.update()
+
     all_sprites.draw(screen)
     pygame.display.flip()
     clock.tick(60)
 
 pygame.quit()
+sys.exit()
 
-
-
-
-
-
-
-
-
-
-
+# https://github.com/artembodic138/good-repository/pull/new/feature-object-2
+# https://github.com/artembodic138/good-repository/pull/new/feature-drag-and-drop
+#
 
