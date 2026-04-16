@@ -1140,94 +1140,195 @@ import pygame
 import random
 import math
 
+# Настройки
 WIDTH, HEIGHT = 800, 600
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
-player = pygame.Rect(400, 300, 40, 40)
-enemy = pygame.Rect(100, 100, 40, 40)
-enemy_speed = [3, 3]
-platform = pygame.Rect(300, 250, 200, 20)
-platform_hp = 3
 
-coins = [pygame.Rect(random.randint(0, 750), random.randint(0, 550), 20, 20) for _ in range(5)]
 
-projectiles = []
-score = 0
-running = True
-print("Игра началась! Собери 20 монет для победы.")
+def load_res(name, size):
+    try:
+        img = pygame.image.load(name).convert_alpha()
+        return pygame.transform.scale(img, size)
+    except:
+        surf = pygame.Surface(size)
+        surf.fill((200, 50, 50))
+        return surf
 
-while running:
-    screen.fill((255, 255, 255))
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+# Ресурсы
+coin_imgs = [load_res(f"537313244285364442{i}.jpg", (30, 30)) for i in range(2, 7)]
+enemy_imgs = [load_res("pipo-enemy047a.png", (50, 50)), load_res("pipo-enemy047a2.png", (50, 50))]
+bullet_img = load_res("Снимок.PNG", (15, 25))
+player_img_orig = load_res("чел.png", (50, 50))
+wall_tex_v = load_res("стена.png", (20, 80))  # Вертикальная
+wall_tex_h = load_res("стена.png", (120, 20))  # Горизонтальная
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            angle = math.atan2(my - player.centery, mx - player.centerx)
-            vx = math.cos(angle) * 7
-            vy = math.sin(angle) * 7
-            projectiles.append([[player.centerx, player.centery], [vx, vy]])
 
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = player_img_orig
+        self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT - 50))
+        self.angle = 0
+        self.score = 0
+
+    def update(self, keys):
+        old_pos = self.rect.topleft
+        if keys[pygame.K_LEFT]:  self.rect.x -= 5; self.angle = 90
+        if keys[pygame.K_RIGHT]: self.rect.x += 5; self.angle = -90
+        if keys[pygame.K_UP]:    self.rect.y -= 5; self.angle = 0
+        if keys[pygame.K_DOWN]:  self.rect.y += 5; self.angle = 180
+
+        self.image = pygame.transform.rotate(player_img_orig, self.angle)
+        new_rect = self.image.get_rect(center=self.rect.center)
+
+        # Коллизия игрока со стенами
+        self.rect = new_rect
+        if pygame.sprite.spritecollideany(self, walls_group):
+            self.rect.topleft = old_pos
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, pos):
+        super().__init__()
+        self.image = enemy_imgs[0]
+        self.rect = self.image.get_rect(center=pos)
+        self.vx, self.vy = 3, 3
+        self.frame = 0
+
+    def update(self, *args):
+        # Движение по X с отскоком от стен
+        self.rect.x += self.vx
+        if self.rect.left < 0 or self.rect.right > WIDTH or pygame.sprite.spritecollideany(self, walls_group):
+            self.vx *= -1
+            self.rect.x += self.vx
+
+        # Движение по Y с отскоком
+        self.rect.y += self.vy
+        if self.rect.top < 0 or self.rect.bottom > HEIGHT or pygame.sprite.spritecollideany(self, walls_group):
+            self.vy *= -1
+            self.rect.y += self.vy
+
+        self.frame = (self.frame + 0.1) % 2
+        self.image = enemy_imgs[int(self.frame)]
+
+
+class Wall(pygame.sprite.Sprite):
+    def __init__(self, x, y, is_vertical=True):
+        super().__init__()
+        self.image = wall_tex_v if is_vertical else wall_tex_h
+        self.rect = self.image.get_rect(center=(x, y))
+        self.hp = 3
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, pos, target):
+        super().__init__()
+        angle = math.atan2(target[1] - pos[1], target[0] - pos[0])
+        self.image = pygame.transform.rotate(bullet_img, -math.degrees(angle) - 90)
+        self.rect = self.image.get_rect(center=pos)
+        self.vx, self.vy = math.cos(angle) * 10, math.sin(angle) * 10
+
+    def update(self, *args):
+        self.rect.x += self.vx
+        self.rect.y += self.vy
+        if not screen.get_rect().colliderect(self.rect): self.kill()
+
+
+class Coin(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = coin_imgs[0]
+        self.rect = self.image.get_rect(center=(random.randint(50, 750), random.randint(50, 550)))
+        self.frame = 0
+
+    def update(self, *args):
+        self.frame = (self.frame + 0.2) % 5
+        self.image = coin_imgs[int(self.frame)]
+
+
+# Инициализация
+all_sprites = pygame.sprite.Group()
+walls_group = pygame.sprite.Group()
+coins_group = pygame.sprite.Group()
+bullets_group = pygame.sprite.Group()
+
+player = Player();
+all_sprites.add(player)
+enemy = Enemy((100, 100));
+all_sprites.add(enemy)
+
+# Создание стен
+all_walls = [
+    Wall(WIDTH // 2, HEIGHT // 2, False),  # Центральная
+    Wall(200, 150), Wall(600, 150),  # Верхние вертикальные
+    Wall(200, 450), Wall(600, 450)  # Нижние вертикальные
+]
+for w in all_walls:
+    walls_group.add(w);
+    all_sprites.add(w)
+
+for _ in range(5):
+    c = Coin();
+    coins_group.add(c);
+    all_sprites.add(c)
+
+# Главный цикл
+run = True
+print("Собери 20 монет для победы!")
+while run:
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]: player.x -= 5
-    if keys[pygame.K_RIGHT]: player.x += 5
-    if keys[pygame.K_UP]: player.y -= 5
-    if keys[pygame.K_DOWN]: player.y += 5
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: run = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            b = Bullet(player.rect.center, event.pos)
+            all_sprites.add(b);
+            bullets_group.add(b)
 
-    enemy.x += enemy_speed[0]
-    enemy.y += enemy_speed[1]
-    if enemy.left < 0 or enemy.right > WIDTH: enemy_speed[0] *= -1
-    if enemy.top < 0 or enemy.bottom > HEIGHT: enemy_speed[1] *= -1
+    all_sprites.update(keys)
 
-    for c in coins:
-        if player.colliderect(c):
-            score += 1
-            print(f"Счёт: {score}")
-            c.x, c.y = random.randint(0, 750), random.randint(0, 550)
+    # Коллизии пуль со стенами (3 попадания)
+    hits = pygame.sprite.groupcollide(bullets_group, walls_group, True, False)
+    for wall_list in hits.values():
+        for w in wall_list:
+            w.hp -= 1
+            if w.hp <= 0: w.kill()
 
-            if score >= 20:
-                print("ПОБЕДА! Ты собрал 20 монет.")
-                running = False
+    # Сбор монет и СЧЕТ
+    if pygame.sprite.spritecollide(player, coins_group, True):
+        player.score += 1
+        print(f"Счет: {player.score}")  # Вывод счета
+        if player.score >= 20:
+            print("ПОБЕДА!")  # Условие победы
+            run = False
+        else:
+            c = Coin();
+            coins_group.add(c);
+            all_sprites.add(c)
 
-    for p in projectiles[:]:
-        p[0][0] += p[1][0]
-        p[0][1] += p[1][1]
-        p_rect = pygame.Rect(p[0][0], p[0][1], 5, 5)
+    # Проигрыш
+    if player.rect.colliderect(enemy.rect):
+        print("ИГРА ОКОНЧЕНА! Враг тебя поймал.")
+        run = False
 
-        if platform_hp > 0 and p_rect.colliderect(platform):
-            platform_hp -= 1
-            projectiles.remove(p)
-            if platform_hp == 0: print("Платформа разрушена!")
-        elif not (0 < p[0][0] < WIDTH and 0 < p[0][1] < HEIGHT):
-            projectiles.remove(p)
-
-    if player.colliderect(enemy):
-        print(f"ПРОИГРЫШ! Враг тебя поймал. Твой счёт: {score}")
-        running = False
-
-    pygame.draw.rect(screen, (0, 0, 255), player)
-    pygame.draw.rect(screen, (255, 0, 0), enemy)
-    for c in coins: pygame.draw.ellipse(screen, (255, 215, 0), c)
-    for p in projectiles: pygame.draw.circle(screen, (0, 0, 0), (int(p[0][0]), int(p[0][1])), 5)
-    if platform_hp > 0: pygame.draw.rect(screen, (0, 255, 0), platform)
-
+    screen.fill((255, 255, 255))
+    all_sprites.draw(screen)
     pygame.display.flip()
     clock.tick(60)
 
 pygame.quit()
 
+git checkout main
 
-  git checkout main
-  git checkout -b feature-Dz-2-april
-  git add .
-  git commit -m "Dz 2 April: Coins, Player, Enemy,"
-  git push -u origin feature-Dz-2-april
+git checkout -b feature-Dz-9-april
 
+git add .
 
+git commit -m "Dz 9 April: Coins, Player, Enemy, Wall"
 
+git push -u origin feature-Dz-9-april
 
 
 
